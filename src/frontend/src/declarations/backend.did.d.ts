@@ -30,6 +30,7 @@ export interface Property {
   'updatedAt' : bigint,
   'locationLink' : string,
   'location' : string,
+  'photos' : Array<string>,
 }
 export type PropertyStatus = { 'pending' : null } |
   { 'approved' : null } |
@@ -41,6 +42,15 @@ export interface SmartFinanceRequest {
 }
 export type SmartFinanceRole = { 'financeApproved' : null } |
   { 'standard' : null };
+export interface SubmitPropertyInput {
+  'title' : string,
+  'description' : string,
+  'valuation' : string,
+  'timestamp' : bigint,
+  'locationLink' : string,
+  'location' : string,
+  'photos' : Array<string>,
+}
 export interface TransformationInput {
   'context' : Uint8Array,
   'response' : http_request_result,
@@ -58,6 +68,17 @@ export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface http_header { 'value' : string, 'name' : string }
 export interface http_request_result {
   'status' : bigint,
@@ -65,7 +86,23 @@ export interface http_request_result {
   'headers' : Array<http_header>,
 }
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addPropertyPhoto' : ActorMethod<[bigint, string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllContactSubmissions' : ActorMethod<[], Array<ContactSubmission>>,
   'getAllContactSubmissionsWithToken' : ActorMethod<
@@ -98,6 +135,7 @@ export interface _SERVICE {
   'isCallerFinanceApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'listApprovalsWithToken' : ActorMethod<[string], Array<UserApprovalInfo>>,
+  'removePropertyPhoto' : ActorMethod<[bigint, string], undefined>,
   'requestApproval' : ActorMethod<[], undefined>,
   'requestSmartFinanceAccess' : ActorMethod<[string, bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
@@ -111,13 +149,10 @@ export interface _SERVICE {
     [string, string, string, string],
     undefined
   >,
-  'submitProperty' : ActorMethod<
-    [string, string, string, string, string, bigint],
-    bigint
-  >,
+  'submitProperty' : ActorMethod<[SubmitPropertyInput], bigint>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateProperty' : ActorMethod<
-    [bigint, string, string, string, string, string, bigint],
+    [bigint, string, string, string, string, string, Array<string>, bigint],
     undefined
   >,
 }

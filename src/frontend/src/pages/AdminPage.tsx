@@ -107,6 +107,7 @@ function AdminPropertyEditDialog({
         location: form.location.trim(),
         valuation: form.valuation.trim(),
         locationLink: form.locationLink.trim(),
+        photos: property.photos ?? [],
         timestamp: BigInt(Date.now()),
       });
       toast.success("Property updated successfully.");
@@ -825,7 +826,10 @@ export default function AdminPage() {
                       <Table>
                         <TableHeader>
                           <TableRow className="border-border hover:bg-transparent">
-                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider pl-6">
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider pl-6 w-12">
+                              Photo
+                            </TableHead>
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
                               Title
                             </TableHead>
                             <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
@@ -853,6 +857,22 @@ export default function AdminPage() {
                               data-ocid={`admin.row.${i + 1}`}
                             >
                               <TableCell className="pl-6">
+                                {property.photos?.[0] ? (
+                                  <div className="w-10 h-10 rounded-sm overflow-hidden border border-border flex-shrink-0">
+                                    <img
+                                      src={property.photos[0]}
+                                      alt={property.title}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-sm border border-border bg-gold-mid/5 flex items-center justify-center flex-shrink-0">
+                                    <Building2 className="w-4 h-4 text-gold-dim/40" />
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
                                 <span className="font-medium text-foreground text-sm max-w-[140px] truncate block">
                                   {property.title}
                                 </span>

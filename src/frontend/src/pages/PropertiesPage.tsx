@@ -14,26 +14,33 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowUpRight,
   Building2,
+  Camera,
   CheckCircle2,
   Clock,
   Edit2,
   ExternalLink,
+  ImageIcon,
   Loader2,
   MapPin,
   PlusCircle,
   Tag,
+  Upload,
+  X,
   XCircle,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ExternalBlob } from "../backend";
 import type { Property } from "../backend.d";
 import { PropertyStatus } from "../backend.d";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useAddPropertyPhoto,
   useGetApprovedProperties,
   useGetMyProperties,
   useIsCallerApproved,
+  useRemovePropertyPhoto,
   useSubmitProperty,
   useUpdateProperty,
 } from "../hooks/useQueries";
@@ -78,12 +85,193 @@ function StatusBadge({ status }: { status: PropertyStatus }) {
   );
 }
 
+// ─── Photo Upload Zone ─────────────────────────────────────────────────────
+
+interface UploadedPhoto {
+  previewUrl: string; // local object URL for preview
+  blobUrl: string | null; // final blob storage URL after upload
+  uploading: boolean;
+  error?: string;
+  file: File;
+}
+
+function PhotoUploadZone({
+  photos,
+  onPhotosChange,
+  maxPhotos = 10,
+}: {
+  photos: UploadedPhoto[];
+  onPhotosChange: (photos: UploadedPhoto[]) => void;
+  maxPhotos?: number;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const currentPhotosRef = useRef<UploadedPhoto[]>(photos);
+  currentPhotosRef.current = photos;
+
+  const addFiles = useCallback(
+    async (files: FileList | File[]) => {
+      const fileArr = Array.from(files).filter((f) =>
+        f.type.startsWith("image/"),
+      );
+      const current = currentPhotosRef.current;
+      const remaining = maxPhotos - current.length;
+      const toAdd = fileArr.slice(0, remaining);
+      if (!toAdd.length) return;
+
+      const newEntries: UploadedPhoto[] = toAdd.map((f) => ({
+        previewUrl: URL.createObjectURL(f),
+        blobUrl: null,
+        uploading: true,
+        file: f,
+      }));
+      const updated = [...current, ...newEntries];
+      onPhotosChange(updated);
+
+      for (let i = 0; i < toAdd.length; i++) {
+        const idx = current.length + i;
+        const file = toAdd[i];
+        (async () => {
+          try {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const blobObj = ExternalBlob.fromBytes(bytes);
+            const url = blobObj.getDirectURL();
+            const latest = [...currentPhotosRef.current];
+            latest[idx] = { ...latest[idx], blobUrl: url, uploading: false };
+            onPhotosChange(latest);
+          } catch {
+            const latest = [...currentPhotosRef.current];
+            latest[idx] = {
+              ...latest[idx],
+              uploading: false,
+              error: "Upload failed",
+            };
+            onPhotosChange(latest);
+            toast.error(`Failed to upload ${file.name}`);
+          }
+        })();
+      }
+    },
+    [maxPhotos, onPhotosChange],
+  );
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  const handleRemove = (index: number) => {
+    const updated = photos.filter((_, i) => i !== index);
+    URL.revokeObjectURL(photos[index].previewUrl);
+    onPhotosChange(updated);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+          Photos{" "}
+          <span className="text-foreground/30 normal-case">
+            (up to {maxPhotos})
+          </span>
+        </Label>
+        <span className="text-foreground/40 text-xs">
+          {photos.length}/{maxPhotos}
+        </span>
+      </div>
+
+      {/* Thumbnails grid */}
+      {photos.length > 0 && (
+        <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+          {photos.map((photo, i) => (
+            <div
+              key={photo.previewUrl}
+              className="relative group aspect-square rounded-sm overflow-hidden border border-border bg-muted"
+              data-ocid={`properties.photo.item.${i + 1}`}
+            >
+              <img
+                src={photo.previewUrl}
+                alt={`Property listing ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+              {photo.uploading && (
+                <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 text-gold-mid animate-spin" />
+                </div>
+              )}
+              {photo.error && (
+                <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
+                  <X className="w-4 h-4 text-destructive" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => handleRemove(i)}
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-background/80 border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/80 hover:border-destructive"
+                data-ocid={`properties.photo.delete_button.${i + 1}`}
+                aria-label="Remove photo"
+              >
+                <X className="w-3 h-3 text-foreground" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Drop zone */}
+      {photos.length < maxPhotos && (
+        <button
+          type="button"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          className={`w-full border-2 border-dashed rounded-sm p-6 flex flex-col items-center gap-2 transition-colors cursor-pointer ${
+            isDragging
+              ? "border-gold-mid bg-gold-mid/5"
+              : "border-border hover:border-gold-dim/50 hover:bg-gold-mid/3"
+          }`}
+          onClick={() => inputRef.current?.click()}
+          data-ocid="properties.dropzone"
+          aria-label="Upload photos"
+        >
+          <Camera className="w-6 h-6 text-foreground/30" />
+          <p className="text-foreground/50 text-xs text-center">
+            Drag & drop photos here, or{" "}
+            <span className="text-gold-dim font-medium">browse</span>
+          </p>
+          <p className="text-foreground/30 text-xs">
+            JPG, PNG, WebP — max {maxPhotos} photos
+          </p>
+        </button>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => e.target.files && addFiles(e.target.files)}
+        data-ocid="properties.upload_button"
+      />
+    </div>
+  );
+}
+
 // ─── Property Card (public view) ──────────────────────────────────────────
 
 function PropertyCard({
   property,
   index,
 }: { property: Property; index: number }) {
+  const firstPhoto = property.photos?.[0];
+  const photoCount = property.photos?.length ?? 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -92,21 +280,38 @@ function PropertyCard({
       transition={{ delay: index * 0.08, duration: 0.5 }}
     >
       <Card
-        className="card-gold-border bg-card h-full flex flex-col"
+        className="card-gold-border bg-card h-full flex flex-col overflow-hidden"
         data-ocid={`properties.item.${index + 1}`}
       >
+        {/* Photo hero */}
+        {firstPhoto ? (
+          <div className="relative aspect-video overflow-hidden bg-muted flex-shrink-0">
+            <img
+              src={firstPhoto}
+              alt={property.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            {photoCount > 1 && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-background/80 border border-border/60 rounded-sm px-1.5 py-0.5 text-xs text-foreground/70">
+                <ImageIcon className="w-3 h-3" />
+                {photoCount} photos
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="aspect-video bg-gold-mid/5 border-b border-gold-dim/15 flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-8 h-8 text-gold-dim/30" />
+          </div>
+        )}
+
         <CardContent className="p-6 flex flex-col h-full gap-4">
           {/* Title + location */}
           <div>
-            <div className="flex items-start gap-2 mb-1">
-              <div className="p-1.5 rounded-sm bg-gold-mid/10 border border-gold-dim/30 flex-shrink-0 mt-0.5">
-                <Building2 className="w-3.5 h-3.5 text-gold-mid" />
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground leading-snug">
-                {property.title}
-              </h3>
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-foreground/60 text-sm">
+            <h3 className="font-display text-lg font-bold text-foreground leading-snug mb-1">
+              {property.title}
+            </h3>
+            <div className="flex items-center gap-1.5 text-foreground/60 text-sm">
               <MapPin className="w-3.5 h-3.5 text-gold-dim flex-shrink-0" />
               <span className="truncate">{property.location}</span>
             </div>
@@ -166,10 +371,50 @@ function EditPropertyDialog({
     locationLink: property.locationLink,
   });
 
+  // Existing photos from backend
+  const [existingPhotos, setExistingPhotos] = useState<string[]>(
+    property.photos ?? [],
+  );
+  // New photos being uploaded
+  const [newPhotos, setNewPhotos] = useState<UploadedPhoto[]>([]);
+  const [removingUrl, setRemovingUrl] = useState<string | null>(null);
+
   const updateProperty = useUpdateProperty();
+  const addPhoto = useAddPropertyPhoto();
+  const removePhoto = useRemovePropertyPhoto();
+
+  const handleRemoveExisting = async (url: string) => {
+    setRemovingUrl(url);
+    try {
+      await removePhoto.mutateAsync({ id: property.id, photoUrl: url });
+      setExistingPhotos((prev) => prev.filter((u) => u !== url));
+      toast.success("Photo removed.");
+    } catch {
+      toast.error("Failed to remove photo.");
+    } finally {
+      setRemovingUrl(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Upload any newly added photos first
+    const pendingNewUrls = newPhotos
+      .filter((p) => p.blobUrl)
+      .map((p) => p.blobUrl as string);
+
+    // Add new photos to backend
+    for (const url of pendingNewUrls) {
+      try {
+        await addPhoto.mutateAsync({ id: property.id, photoUrl: url });
+      } catch {
+        // continue even if individual photo fails
+      }
+    }
+
+    const allPhotos = [...existingPhotos, ...pendingNewUrls];
+
     try {
       await updateProperty.mutateAsync({
         id: property.id,
@@ -178,6 +423,7 @@ function EditPropertyDialog({
         location: form.location.trim(),
         valuation: form.valuation.trim(),
         locationLink: form.locationLink.trim(),
+        photos: allPhotos,
         timestamp: BigInt(Date.now()),
       });
       toast.success("Property updated successfully.");
@@ -187,10 +433,12 @@ function EditPropertyDialog({
     }
   };
 
+  const totalPhotos = existingPhotos.length + newPhotos.length;
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        className="bg-card border-gold-dim/30 text-foreground max-w-lg"
+        className="bg-card border-gold-dim/30 text-foreground max-w-xl max-h-[90vh] overflow-y-auto"
         data-ocid="properties.dialog"
       >
         <DialogHeader>
@@ -272,11 +520,67 @@ function EditPropertyDialog({
               type="url"
             />
           </div>
+
+          {/* Existing photos */}
+          {existingPhotos.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+                Current Photos
+              </Label>
+              <div className="grid grid-cols-4 gap-2">
+                {existingPhotos.map((url, i) => (
+                  <div
+                    key={url}
+                    className="relative group aspect-square rounded-sm overflow-hidden border border-border bg-muted"
+                    data-ocid={`properties.photo.item.${i + 1}`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Existing listing ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExisting(url)}
+                      disabled={removingUrl === url}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-background/80 border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/80 hover:border-destructive disabled:opacity-50"
+                      data-ocid={`properties.photo.delete_button.${i + 1}`}
+                      aria-label="Remove photo"
+                    >
+                      {removingUrl === url ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-foreground" />
+                      ) : (
+                        <X className="w-3 h-3 text-foreground" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add more photos */}
+          {totalPhotos < 10 && (
+            <div className="space-y-2">
+              <Label className="text-foreground/60 text-xs uppercase tracking-wider flex items-center gap-2">
+                <Upload className="w-3.5 h-3.5" />
+                Add More Photos
+              </Label>
+              <PhotoUploadZone
+                photos={newPhotos}
+                onPhotosChange={setNewPhotos}
+                maxPhotos={10 - existingPhotos.length}
+              />
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <Button
               type="submit"
               className="btn-gold flex-1 rounded-sm"
-              disabled={updateProperty.isPending}
+              disabled={
+                updateProperty.isPending || newPhotos.some((p) => p.uploading)
+              }
               data-ocid="properties.save_button"
             >
               {updateProperty.isPending ? (
@@ -323,11 +627,21 @@ export default function PropertiesPage() {
     valuation: "",
     locationLink: "",
   });
+  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
 
   const [editTarget, setEditTarget] = useState<Property | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const pendingUploads = uploadedPhotos.filter((p) => p.uploading);
+    if (pendingUploads.length > 0) {
+      toast.error("Please wait for photos to finish uploading.");
+      return;
+    }
+    const photoUrls = uploadedPhotos
+      .filter((p) => p.blobUrl)
+      .map((p) => p.blobUrl as string);
+
     try {
       await submitProperty.mutateAsync({
         title: form.title.trim(),
@@ -335,8 +649,11 @@ export default function PropertiesPage() {
         location: form.location.trim(),
         valuation: form.valuation.trim(),
         locationLink: form.locationLink.trim(),
+        photos: photoUrls,
         timestamp: BigInt(Date.now()),
       });
+      // Revoke object URLs
+      for (const p of uploadedPhotos) URL.revokeObjectURL(p.previewUrl);
       setForm({
         title: "",
         description: "",
@@ -344,6 +661,7 @@ export default function PropertiesPage() {
         valuation: "",
         locationLink: "",
       });
+      setUploadedPhotos([]);
       setSubmitted(true);
       toast.success("Property submitted for admin review.");
     } catch {
@@ -405,9 +723,10 @@ export default function PropertiesPage() {
               {[1, 2, 3].map((i) => (
                 <Card
                   key={i}
-                  className="card-gold-border bg-card"
+                  className="card-gold-border bg-card overflow-hidden"
                   data-ocid="properties.loading_state"
                 >
+                  <Skeleton className="w-full aspect-video bg-muted" />
                   <CardContent className="p-6 space-y-3">
                     <Skeleton className="h-5 w-3/4 bg-muted" />
                     <Skeleton className="h-4 w-1/2 bg-muted" />
@@ -467,6 +786,13 @@ export default function PropertiesPage() {
                   Submit your property for review. Once approved by our admin
                   team, it will appear in the public listings above.
                 </p>
+                <div className="mt-6 flex items-start gap-2 p-3 rounded-sm bg-gold-mid/5 border border-gold-dim/20">
+                  <Camera className="w-4 h-4 text-gold-mid flex-shrink-0 mt-0.5" />
+                  <p className="text-foreground/60 text-sm">
+                    Upload up to 10 photos to make your listing stand out. The
+                    first photo will be used as the hero image.
+                  </p>
+                </div>
               </motion.div>
 
               {/* Form */}
@@ -622,18 +948,33 @@ export default function PropertiesPage() {
                             data-ocid="properties.input"
                           />
                         </div>
+
+                        {/* Photo upload */}
+                        <PhotoUploadZone
+                          photos={uploadedPhotos}
+                          onPhotosChange={setUploadedPhotos}
+                          maxPhotos={10}
+                        />
+
                         <Button
                           type="submit"
                           className="btn-gold w-full rounded-sm"
-                          disabled={submitProperty.isPending}
+                          disabled={
+                            submitProperty.isPending ||
+                            uploadedPhotos.some((p) => p.uploading)
+                          }
                           data-ocid="properties.submit_button"
                         >
                           {submitProperty.isPending ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : uploadedPhotos.some((p) => p.uploading) ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           ) : (
                             <ArrowUpRight className="w-4 h-4 mr-2" />
                           )}
-                          Submit for Review
+                          {uploadedPhotos.some((p) => p.uploading)
+                            ? "Uploading photos…"
+                            : "Submit for Review"}
                         </Button>
                       </form>
                     )}
@@ -690,54 +1031,80 @@ export default function PropertiesPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {myProperties.map((property, i) => (
-                  <motion.div
-                    key={property.id.toString()}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.06 }}
-                  >
-                    <Card
-                      className="card-gold-border bg-card"
-                      data-ocid={`properties.item.${i + 1}`}
+                {myProperties.map((property, i) => {
+                  const firstPhoto = property.photos?.[0];
+                  return (
+                    <motion.div
+                      key={property.id.toString()}
+                      initial={{ opacity: 0, y: 12 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.06 }}
                     >
-                      <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex-grow min-w-0">
-                          <div className="flex items-start gap-2 flex-wrap">
-                            <h3 className="font-display font-bold text-foreground text-base truncate">
-                              {property.title}
-                            </h3>
-                            <StatusBadge status={property.status} />
+                      <Card
+                        className="card-gold-border bg-card"
+                        data-ocid={`properties.item.${i + 1}`}
+                      >
+                        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                          {/* Thumbnail */}
+                          {firstPhoto ? (
+                            <div className="w-16 h-16 rounded-sm overflow-hidden border border-border flex-shrink-0">
+                              <img
+                                src={firstPhoto}
+                                alt={property.title}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-sm border border-border bg-gold-mid/5 flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-6 h-6 text-gold-dim/40" />
+                            </div>
+                          )}
+
+                          <div className="flex-grow min-w-0">
+                            <div className="flex items-start gap-2 flex-wrap">
+                              <h3 className="font-display font-bold text-foreground text-base truncate">
+                                {property.title}
+                              </h3>
+                              <StatusBadge status={property.status} />
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
+                              <span className="text-foreground/50 text-xs flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {property.location}
+                              </span>
+                              <span className="text-gold-dim text-xs flex items-center gap-1 font-medium">
+                                <Tag className="w-3 h-3" />
+                                {property.valuation}
+                              </span>
+                              {property.photos?.length > 0 && (
+                                <span className="text-foreground/40 text-xs flex items-center gap-1">
+                                  <Camera className="w-3 h-3" />
+                                  {property.photos.length} photo
+                                  {property.photos.length !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-foreground/50 text-xs mt-2 line-clamp-1">
+                              {property.description}
+                            </p>
                           </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
-                            <span className="text-foreground/50 text-xs flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {property.location}
-                            </span>
-                            <span className="text-gold-dim text-xs flex items-center gap-1 font-medium">
-                              <Tag className="w-3 h-3" />
-                              {property.valuation}
-                            </span>
-                          </div>
-                          <p className="text-foreground/50 text-xs mt-2 line-clamp-1">
-                            {property.description}
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditTarget(property)}
-                          className="border-gold-dim/40 text-gold-mid hover:border-gold-mid hover:bg-gold-mid/5 flex-shrink-0 rounded-sm"
-                          data-ocid={`properties.edit_button.${i + 1}`}
-                        >
-                          <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                          Edit
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditTarget(property)}
+                            className="border-gold-dim/40 text-gold-mid hover:border-gold-mid hover:bg-gold-mid/5 flex-shrink-0 rounded-sm"
+                            data-ocid={`properties.edit_button.${i + 1}`}
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                            Edit
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>

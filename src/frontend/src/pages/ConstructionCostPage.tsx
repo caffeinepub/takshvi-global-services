@@ -12,6 +12,7 @@ import {
   Factory,
   Home,
   Info,
+  Layers,
   Loader2,
   MapPin,
   Search,
@@ -499,6 +500,7 @@ export default function ConstructionCostPage() {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [propertyType, setPropertyType] = useState<PropertyType>("residential");
   const [sqft, setSqft] = useState("");
+  const [floors, setFloors] = useState("1");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Results state
@@ -526,10 +528,17 @@ export default function ConstructionCostPage() {
       setError("Please enter a valid area (minimum 100 sq ft).");
       return;
     }
+    const floorsVal = Number.parseInt(floors, 10);
+    if (!floors || Number.isNaN(floorsVal) || floorsVal < 1 || floorsVal > 50) {
+      setError("Please enter a valid number of floors (1–50).");
+      return;
+    }
 
     setError(null);
     setEstimate(null);
     setIsLoading(true);
+
+    const effectiveSqft = sqftNum * floorsVal;
 
     try {
       let result: EstimateResult;
@@ -539,24 +548,28 @@ export default function ConstructionCostPage() {
           const rawResponse = await actor.getConstructionEstimate(
             selectedCity,
             propertyType,
-            BigInt(sqftNum),
+            BigInt(effectiveSqft),
             "AIzaSyC-placeholder-use-env",
           );
           result = parseGeminiResponse(
             rawResponse,
             selectedCity,
             propertyType,
-            sqftNum,
+            effectiveSqft,
           );
         } catch {
           result = generateFallbackEstimate(
             selectedCity,
             propertyType,
-            sqftNum,
+            effectiveSqft,
           );
         }
       } else {
-        result = generateFallbackEstimate(selectedCity, propertyType, sqftNum);
+        result = generateFallbackEstimate(
+          selectedCity,
+          propertyType,
+          effectiveSqft,
+        );
       }
 
       setEstimate(result);
@@ -568,6 +581,10 @@ export default function ConstructionCostPage() {
   };
 
   const sqftNum = Number.parseInt(sqft, 10) || 0;
+  const floorsNum = Math.max(1, Number.parseInt(floors, 10) || 1);
+
+  // Effective total area = sqft per floor × number of floors
+  const effectiveTotalSqft = sqftNum * floorsNum;
 
   // Prepare chart data (top 8 materials by total cost)
   const chartData = estimate
@@ -635,7 +652,7 @@ export default function ConstructionCostPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-6 pb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* City Selector */}
                   <div className="md:col-span-1">
                     <Label className="text-foreground/80 text-sm font-medium mb-2 block">
@@ -776,6 +793,33 @@ export default function ConstructionCostPage() {
                       </p>
                     )}
                   </div>
+
+                  {/* Number of Floors */}
+                  <div className="md:col-span-1">
+                    <Label
+                      htmlFor="floors-input"
+                      className="text-foreground/80 text-sm font-medium mb-2 block"
+                    >
+                      <Layers className="w-3.5 h-3.5 inline mr-1 text-gold-mid" />
+                      Number of Floors
+                    </Label>
+                    <div className="relative">
+                      <input
+                        id="floors-input"
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={floors}
+                        onChange={(e) => setFloors(e.target.value)}
+                        placeholder="e.g. 2"
+                        className="w-full px-3 py-2.5 text-sm bg-input border border-border rounded-md text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-gold-mid/40 focus:border-gold-mid/60 transition-all"
+                        data-ocid="cost-estimator.input"
+                      />
+                    </div>
+                    <p className="text-foreground/50 text-xs mt-1.5">
+                      ≈ {floorsNum} floor(s) total
+                    </p>
+                  </div>
                 </div>
 
                 {/* Error */}
@@ -839,8 +883,10 @@ export default function ConstructionCostPage() {
               </div>
               <div className="text-center">
                 <p className="text-foreground font-medium text-lg">
-                  Analyzing market prices for{" "}
+                  Analyzing prices for{" "}
                   <span className="text-gold-bright">{selectedCity}</span>
+                  {" · "}
+                  <span className="text-gold-mid">{floorsNum} floor(s)</span>
                 </p>
                 <p className="text-foreground/50 text-sm mt-1">
                   Fetching live construction cost data via AI...
@@ -887,6 +933,10 @@ export default function ConstructionCostPage() {
                 </Badge>
                 <Badge className="bg-muted text-foreground/60 border-border">
                   {sqftNum.toLocaleString("en-IN")} sq ft
+                </Badge>
+                <Badge className="bg-muted text-foreground/60 border-border flex items-center gap-1">
+                  <Layers className="w-3 h-3" />
+                  {floorsNum} Floor(s)
                 </Badge>
               </div>
               <div className="gold-divider" />
@@ -954,7 +1004,7 @@ export default function ConstructionCostPage() {
                       <p
                         className={`font-display text-3xl font-bold ${item.labelColor} mb-1`}
                       >
-                        {formatINR(item.cost_per_sqft * sqftNum)}
+                        {formatINR(item.cost_per_sqft * effectiveTotalSqft)}
                       </p>
                       <p className="text-foreground/60 text-sm">
                         Total Estimated Cost
@@ -966,10 +1016,12 @@ export default function ConstructionCostPage() {
                             ₹{item.cost_per_sqft.toLocaleString("en-IN")}
                           </span>
                         </div>
-                        <div className="flex justify-between text-sm mt-1">
+                        <div className="flex flex-col text-sm mt-1 gap-0.5">
                           <span className="text-foreground/50">Area</span>
-                          <span className="text-foreground/70">
-                            {sqftNum.toLocaleString("en-IN")} sq ft
+                          <span className="text-foreground/70 text-xs text-right">
+                            {sqftNum.toLocaleString("en-IN")} sq ft ×{" "}
+                            {floorsNum} floor(s) ={" "}
+                            {effectiveTotalSqft.toLocaleString("en-IN")} sq ft
                           </span>
                         </div>
                       </div>
@@ -1115,7 +1167,9 @@ export default function ConstructionCostPage() {
                                 {m.unit}
                               </td>
                               <td className="py-3 px-3 text-foreground/70 text-xs text-right tabular-nums">
-                                {(m.quantity_per_sqft * sqftNum).toFixed(1)}
+                                {(
+                                  m.quantity_per_sqft * effectiveTotalSqft
+                                ).toFixed(1)}
                               </td>
                               <td className="py-3 px-3 text-foreground/70 text-xs text-right tabular-nums whitespace-nowrap">
                                 {formatINRFull(m.unit_price)}
@@ -1161,12 +1215,16 @@ export default function ConstructionCostPage() {
                 },
                 {
                   label: "Labor & Overhead",
-                  value: formatINR(estimate.standard_cost * sqftNum * 0.25),
+                  value: formatINR(
+                    estimate.standard_cost * effectiveTotalSqft * 0.25,
+                  ),
                   sub: "Approx 25% of project",
                 },
                 {
                   label: "Contingency (10%)",
-                  value: formatINR(estimate.standard_cost * sqftNum * 0.1),
+                  value: formatINR(
+                    estimate.standard_cost * effectiveTotalSqft * 0.1,
+                  ),
                   sub: "Buffer for unforeseen costs",
                 },
               ].map((item, _idx) => (

@@ -6,15 +6,18 @@ import Order "mo:core/Order";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Text "mo:core/Text";
-import Time "mo:core/Time";
 import Iter "mo:core/Iter";
+import Time "mo:core/Time";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import UserApproval "user-approval/approval";
 import OutCall "http-outcalls/outcall";
-import Migration "migration";
 
-(with migration = Migration.run)
+import Blob "mo:core/Blob";
+import MixinStorage "blob-storage/Mixin";
+import Storage "blob-storage/Storage";
+
+
 actor {
   // --- Types ---
   public type UserProfile = {
@@ -59,6 +62,7 @@ actor {
     location : Text;
     valuation : Text;
     locationLink : Text;
+    photos : [Text];
     status : PropertyStatus;
     createdAt : Int;
     updatedAt : Int;
@@ -82,6 +86,9 @@ actor {
   let smartFinanceRequests = List.empty<SmartFinanceRequest>();
   let properties = Map.empty<Nat, Property>();
   var nextPropertyId = 1;
+
+  // Include Storage Mixin
+  include MixinStorage();
 
   // --- User Profile Functions ---
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -225,14 +232,18 @@ actor {
     UserApproval.listApprovals(approvalState);
   };
 
+  type SubmitPropertyInput = {
+    title : Text;
+    description : Text;
+    location : Text;
+    valuation : Text;
+    locationLink : Text;
+    photos : [Text];
+    timestamp : Int;
+  };
   // --- Property Listing ---
   public shared ({ caller }) func submitProperty(
-    title : Text,
-    description : Text,
-    location : Text,
-    valuation : Text,
-    locationLink : Text,
-    timestamp : Int,
+    input : SubmitPropertyInput
   ) : async Nat {
     if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only approved users can submit properties");
@@ -241,14 +252,15 @@ actor {
     let newProperty : Property = {
       id = nextPropertyId;
       owner = caller;
-      title;
-      description;
-      location;
-      valuation;
-      locationLink;
+      title = input.title;
+      description = input.description;
+      location = input.location;
+      valuation = input.valuation;
+      locationLink = input.locationLink;
+      photos = input.photos;
       status = #pending;
-      createdAt = timestamp;
-      updatedAt = timestamp;
+      createdAt = input.timestamp;
+      updatedAt = input.timestamp;
     };
 
     properties.add(nextPropertyId, newProperty);
@@ -263,6 +275,7 @@ actor {
     location : Text,
     valuation : Text,
     locationLink : Text,
+    photos : [Text],
     timestamp : Int,
   ) : async () {
     let property = getProperty(id);
@@ -277,9 +290,34 @@ actor {
       location;
       valuation;
       locationLink;
+      photos;
       updatedAt = timestamp;
     };
 
+    properties.add(id, updatedProperty);
+  };
+
+  public shared ({ caller }) func addPropertyPhoto(id : Nat, photoUrl : Text) : async () {
+    let property = getProperty(id);
+    if (property.owner != caller and not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Unauthorized: Only owner or admin can add photos");
+    };
+
+    let updatedPhotos = property.photos.concat([photoUrl]);
+    let updatedProperty = { property with photos = updatedPhotos };
+    properties.add(id, updatedProperty);
+  };
+
+  public shared ({ caller }) func removePropertyPhoto(id : Nat, photoUrl : Text) : async () {
+    let property = getProperty(id);
+    if (property.owner != caller and not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Unauthorized: Only owner or admin can remove photos");
+    };
+
+    let updatedPhotos = property.photos.filter(
+      func(p) { not Text.equal(p, photoUrl) }
+    );
+    let updatedProperty = { property with photos = updatedPhotos };
     properties.add(id, updatedProperty);
   };
 
@@ -352,6 +390,10 @@ actor {
   };
 
   public shared ({ caller }) func getConstructionEstimate(city : Text, propertyType : Text, squareFeet : Nat, geminiApiKey : Text) : async Text {
+    if (not (UserApproval.isApproved(approvalState, caller) or AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only approved users can request construction estimates");
+    };
+
     let promptLower = "Estimate construction cost for " # propertyType # " in " # city # " (" # squareFeet.toText() # " sq. ft.)?";
     let cityUpper = city.toUpper();
     let propertyTypeUpper = propertyType.toUpper();
@@ -369,4 +411,3 @@ actor {
     await OutCall.httpPostRequest(url, headers, jsonPayload, transform);
   };
 };
-

@@ -7,6 +7,21 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface TransformationOutput {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface ContactSubmission {
+    name: string;
+    email: string;
+    message: string;
+    phone: string;
+}
+export interface http_header {
+    value: string;
+    name: string;
+}
 export interface http_request_result {
     status: bigint;
     body: Uint8Array;
@@ -15,11 +30,6 @@ export interface http_request_result {
 export interface UserApprovalInfo {
     status: ApprovalStatus;
     principal: Principal;
-}
-export interface TransformationOutput {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
 }
 export interface Property {
     id: bigint;
@@ -32,27 +42,27 @@ export interface Property {
     updatedAt: bigint;
     locationLink: string;
     location: string;
+    photos: Array<string>;
 }
 export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
-}
-export interface ContactSubmission {
-    name: string;
-    email: string;
-    message: string;
-    phone: string;
 }
 export interface SmartFinanceRequest {
     request: string;
     user: Principal;
     timestamp: bigint;
 }
-export interface UserProfile {
-    name: string;
+export interface SubmitPropertyInput {
+    title: string;
+    description: string;
+    valuation: string;
+    timestamp: bigint;
+    locationLink: string;
+    location: string;
+    photos: Array<string>;
 }
-export interface http_header {
-    value: string;
+export interface UserProfile {
     name: string;
 }
 export enum PropertyStatus {
@@ -70,6 +80,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    addPropertyPhoto(id: bigint, photoUrl: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAllContactSubmissions(): Promise<Array<ContactSubmission>>;
     getAllContactSubmissionsWithToken(token: string): Promise<Array<ContactSubmission>>;
@@ -90,6 +101,7 @@ export interface backendInterface {
     isCallerFinanceApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     listApprovalsWithToken(token: string): Promise<Array<UserApprovalInfo>>;
+    removePropertyPhoto(id: bigint, photoUrl: string): Promise<void>;
     requestApproval(): Promise<void>;
     requestSmartFinanceAccess(request: string, timestamp: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
@@ -97,7 +109,7 @@ export interface backendInterface {
     setPropertyStatus(id: bigint, status: PropertyStatus, _timestamp: bigint): Promise<void>;
     setSmartFinanceRole(user: Principal, role: SmartFinanceRole): Promise<void>;
     submitContactSubmission(name: string, email: string, phone: string, message: string): Promise<void>;
-    submitProperty(title: string, description: string, location: string, valuation: string, locationLink: string, timestamp: bigint): Promise<bigint>;
+    submitProperty(input: SubmitPropertyInput): Promise<bigint>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
-    updateProperty(id: bigint, title: string, description: string, location: string, valuation: string, locationLink: string, timestamp: bigint): Promise<void>;
+    updateProperty(id: bigint, title: string, description: string, location: string, valuation: string, locationLink: string, photos: Array<string>, timestamp: bigint): Promise<void>;
 }

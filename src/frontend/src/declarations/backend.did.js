@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -35,6 +46,7 @@ export const Property = IDL.Record({
   'updatedAt' : IDL.Int,
   'locationLink' : IDL.Text,
   'location' : IDL.Text,
+  'photos' : IDL.Vec(IDL.Text),
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const SmartFinanceRole = IDL.Variant({
@@ -54,6 +66,15 @@ export const ApprovalStatus = IDL.Variant({
 export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
+});
+export const SubmitPropertyInput = IDL.Record({
+  'title' : IDL.Text,
+  'description' : IDL.Text,
+  'valuation' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'locationLink' : IDL.Text,
+  'location' : IDL.Text,
+  'photos' : IDL.Vec(IDL.Text),
 });
 export const http_header = IDL.Record({
   'value' : IDL.Text,
@@ -75,7 +96,34 @@ export const TransformationOutput = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addPropertyPhoto' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getAllContactSubmissions' : IDL.Func(
       [],
@@ -136,6 +184,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(UserApprovalInfo)],
       ['query'],
     ),
+  'removePropertyPhoto' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'requestApproval' : IDL.Func([], [], []),
   'requestSmartFinanceAccess' : IDL.Func([IDL.Text, IDL.Int], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
@@ -147,18 +196,23 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
-  'submitProperty' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
-      [IDL.Nat],
-      [],
-    ),
+  'submitProperty' : IDL.Func([SubmitPropertyInput], [IDL.Nat], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
     ),
   'updateProperty' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
+      [
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Vec(IDL.Text),
+        IDL.Int,
+      ],
       [],
       [],
     ),
@@ -167,6 +221,17 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -194,6 +259,7 @@ export const idlFactory = ({ IDL }) => {
     'updatedAt' : IDL.Int,
     'locationLink' : IDL.Text,
     'location' : IDL.Text,
+    'photos' : IDL.Vec(IDL.Text),
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const SmartFinanceRole = IDL.Variant({
@@ -214,6 +280,15 @@ export const idlFactory = ({ IDL }) => {
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
   });
+  const SubmitPropertyInput = IDL.Record({
+    'title' : IDL.Text,
+    'description' : IDL.Text,
+    'valuation' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'locationLink' : IDL.Text,
+    'location' : IDL.Text,
+    'photos' : IDL.Vec(IDL.Text),
+  });
   const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
   const http_request_result = IDL.Record({
     'status' : IDL.Nat,
@@ -231,7 +306,34 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addPropertyPhoto' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getAllContactSubmissions' : IDL.Func(
         [],
@@ -292,6 +394,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(UserApprovalInfo)],
         ['query'],
       ),
+    'removePropertyPhoto' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'requestApproval' : IDL.Func([], [], []),
     'requestSmartFinanceAccess' : IDL.Func([IDL.Text, IDL.Int], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
@@ -303,18 +406,23 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
-    'submitProperty' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
-        [IDL.Nat],
-        [],
-      ),
+    'submitProperty' : IDL.Func([SubmitPropertyInput], [IDL.Nat], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
       ),
     'updateProperty' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
+        [
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Vec(IDL.Text),
+          IDL.Int,
+        ],
         [],
         [],
       ),

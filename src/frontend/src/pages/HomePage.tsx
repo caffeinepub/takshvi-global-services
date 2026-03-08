@@ -356,56 +356,74 @@ export default function HomePage() {
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredProperties.map((property, i) => (
-                <motion.div
-                  key={property.id.toString()}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.5 }}
-                >
-                  <Card
-                    className="card-gold-border bg-background h-full flex flex-col"
-                    data-ocid={`home.item.${i + 1}`}
+              {featuredProperties.map((property, i) => {
+                const firstPhoto = property.photos?.[0];
+                return (
+                  <motion.div
+                    key={property.id.toString()}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1, duration: 0.5 }}
                   >
-                    <CardContent className="p-6 flex flex-col gap-3 h-full">
-                      <div className="flex items-start gap-2">
-                        <div className="p-1.5 rounded-sm bg-gold-mid/10 border border-gold-dim/30 flex-shrink-0 mt-0.5">
-                          <Building2 className="w-3.5 h-3.5 text-gold-mid" />
+                    <Card
+                      className="card-gold-border bg-background h-full flex flex-col overflow-hidden"
+                      data-ocid={`home.item.${i + 1}`}
+                    >
+                      {/* Photo thumbnail */}
+                      {firstPhoto ? (
+                        <div className="aspect-video overflow-hidden bg-muted flex-shrink-0">
+                          <img
+                            src={firstPhoto}
+                            alt={property.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
                         </div>
-                        <h3 className="font-display text-base font-bold text-foreground leading-snug">
-                          {property.title}
-                        </h3>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-foreground/60 text-sm">
-                        <MapPin className="w-3.5 h-3.5 text-gold-dim flex-shrink-0" />
-                        <span className="truncate">{property.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-sm bg-gold-mid/8 border border-gold-dim/20">
-                        <Tag className="w-3 h-3 text-gold-mid flex-shrink-0" />
-                        <span className="text-gold-bright font-display font-semibold text-sm">
-                          {property.valuation}
-                        </span>
-                      </div>
-                      <p className="text-foreground/60 text-sm leading-relaxed line-clamp-2 flex-grow">
-                        {property.description}
-                      </p>
-                      {property.locationLink && (
-                        <a
-                          href={property.locationLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-gold-mid hover:text-gold-bright transition-colors text-xs font-medium"
-                          data-ocid={`home.link.${i + 1}`}
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          View Location
-                        </a>
+                      ) : (
+                        <div className="aspect-video bg-gold-mid/5 border-b border-gold-dim/15 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="w-7 h-7 text-gold-dim/30" />
+                        </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      <CardContent className="p-6 flex flex-col gap-3 h-full">
+                        <div className="flex items-start gap-2">
+                          <div className="p-1.5 rounded-sm bg-gold-mid/10 border border-gold-dim/30 flex-shrink-0 mt-0.5">
+                            <Building2 className="w-3.5 h-3.5 text-gold-mid" />
+                          </div>
+                          <h3 className="font-display text-base font-bold text-foreground leading-snug">
+                            {property.title}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-foreground/60 text-sm">
+                          <MapPin className="w-3.5 h-3.5 text-gold-dim flex-shrink-0" />
+                          <span className="truncate">{property.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-sm bg-gold-mid/8 border border-gold-dim/20">
+                          <Tag className="w-3 h-3 text-gold-mid flex-shrink-0" />
+                          <span className="text-gold-bright font-display font-semibold text-sm">
+                            {property.valuation}
+                          </span>
+                        </div>
+                        <p className="text-foreground/60 text-sm leading-relaxed line-clamp-2 flex-grow">
+                          {property.description}
+                        </p>
+                        {property.locationLink && (
+                          <a
+                            href={property.locationLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-gold-mid hover:text-gold-bright transition-colors text-xs font-medium"
+                            data-ocid={`home.link.${i + 1}`}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View Location
+                          </a>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
 
             <motion.div

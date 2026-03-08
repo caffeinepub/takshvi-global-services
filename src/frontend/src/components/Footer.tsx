@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="gold-divider" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 lg:gap-16">
           {/* Brand column */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
@@ -100,6 +100,28 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Developer column */}
+          <div>
+            <h3 className="font-display text-sm font-semibold text-gold-mid uppercase tracking-widest mb-5">
+              Developer
+            </h3>
+            <div className="flex flex-col items-start gap-3">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gold-dim/50 shadow-lg">
+                <img
+                  src="/assets/uploads/IMG_6992-1.jpg"
+                  alt="Kunduru Dilip Reddy"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <p className="text-gold-bright font-semibold text-sm leading-tight">
+                  KUNDURU DILIP REDDY
+                </p>
+                <p className="text-foreground/50 text-xs mt-1">Web Developer</p>
+              </div>
+            </div>
           </div>
         </div>
 

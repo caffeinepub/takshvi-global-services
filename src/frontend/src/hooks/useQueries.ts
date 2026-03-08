@@ -251,6 +251,7 @@ export function useSubmitProperty() {
       location,
       valuation,
       locationLink,
+      photos,
       timestamp,
     }: {
       title: string;
@@ -258,17 +259,19 @@ export function useSubmitProperty() {
       location: string;
       valuation: string;
       locationLink: string;
+      photos: string[];
       timestamp: bigint;
     }) => {
       if (!actor) throw new Error("Not connected");
-      return actor.submitProperty(
+      return actor.submitProperty({
         title,
         description,
         location,
         valuation,
         locationLink,
+        photos,
         timestamp,
-      );
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myProperties"] });
@@ -288,6 +291,7 @@ export function useUpdateProperty() {
       location,
       valuation,
       locationLink,
+      photos,
       timestamp,
     }: {
       id: bigint;
@@ -296,6 +300,7 @@ export function useUpdateProperty() {
       location: string;
       valuation: string;
       locationLink: string;
+      photos: string[];
       timestamp: bigint;
     }) => {
       if (!actor) throw new Error("Not connected");
@@ -306,8 +311,41 @@ export function useUpdateProperty() {
         location,
         valuation,
         locationLink,
+        photos,
         timestamp,
       );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["approvedProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["allProperties"] });
+    },
+  });
+}
+
+export function useAddPropertyPhoto() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, photoUrl }: { id: bigint; photoUrl: string }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.addPropertyPhoto(id, photoUrl);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["approvedProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["allProperties"] });
+    },
+  });
+}
+
+export function useRemovePropertyPhoto() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, photoUrl }: { id: bigint; photoUrl: string }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.removePropertyPhoto(id, photoUrl);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myProperties"] });
@@ -368,6 +406,7 @@ export function useAdminUpdateProperty() {
       location,
       valuation,
       locationLink,
+      photos,
       timestamp,
     }: {
       id: bigint;
@@ -376,6 +415,7 @@ export function useAdminUpdateProperty() {
       location: string;
       valuation: string;
       locationLink: string;
+      photos: string[];
       timestamp: bigint;
     }) => {
       if (!actor) throw new Error("Not connected");
@@ -386,6 +426,7 @@ export function useAdminUpdateProperty() {
         location,
         valuation,
         locationLink,
+        photos,
         timestamp,
       );
     },
