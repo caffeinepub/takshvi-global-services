@@ -61,6 +61,7 @@ export default function Navbar() {
       label: "Smart Finance",
       locked: isAuthenticated && !isFinanceApproved,
     },
+    { to: "/construction-cost", label: "Cost Estimator", locked: false },
     { to: "/contact", label: "Contact" },
   ];
 

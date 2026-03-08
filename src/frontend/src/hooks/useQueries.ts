@@ -16,6 +16,14 @@ export enum ApprovalStatus {
   rejected = "rejected",
 }
 
+// Admin token for local session (username/password) based admin access
+const ADMIN_SESSION_TOKEN = "takshvi-admin-ku-2024";
+
+// Helper to detect if local admin session is active
+function useIsLocalAdminSession(): boolean {
+  return sessionStorage.getItem("takshvi_admin_session") === "true";
+}
+
 // ─── Auth / Role Queries ───────────────────────────────────────────────────
 
 export function useIsCallerAdmin() {
@@ -58,10 +66,13 @@ export function useIsCallerFinanceApproved() {
 
 export function useListApprovals() {
   const { actor, isFetching } = useActor();
+  const isLocalAdmin = useIsLocalAdminSession();
   return useQuery<UserApprovalInfo[]>({
-    queryKey: ["listApprovals"],
+    queryKey: ["listApprovals", isLocalAdmin],
     queryFn: async () => {
       if (!actor) return [];
+      if (isLocalAdmin)
+        return actor.listApprovalsWithToken(ADMIN_SESSION_TOKEN);
       return actor.listApprovals();
     },
     enabled: !!actor && !isFetching,
@@ -70,10 +81,13 @@ export function useListApprovals() {
 
 export function useGetSmartFinanceRequests() {
   const { actor, isFetching } = useActor();
+  const isLocalAdmin = useIsLocalAdminSession();
   return useQuery<SmartFinanceRequest[]>({
-    queryKey: ["smartFinanceRequests"],
+    queryKey: ["smartFinanceRequests", isLocalAdmin],
     queryFn: async () => {
       if (!actor) return [];
+      if (isLocalAdmin)
+        return actor.getSmartFinanceRequestsWithToken(ADMIN_SESSION_TOKEN);
       return actor.getSmartFinanceRequests();
     },
     enabled: !!actor && !isFetching,
@@ -82,10 +96,13 @@ export function useGetSmartFinanceRequests() {
 
 export function useGetAllContactSubmissions() {
   const { actor, isFetching } = useActor();
+  const isLocalAdmin = useIsLocalAdminSession();
   return useQuery<ContactSubmission[]>({
-    queryKey: ["contactSubmissions"],
+    queryKey: ["contactSubmissions", isLocalAdmin],
     queryFn: async () => {
       if (!actor) return [];
+      if (isLocalAdmin)
+        return actor.getAllContactSubmissionsWithToken(ADMIN_SESSION_TOKEN);
       return actor.getAllContactSubmissions();
     },
     enabled: !!actor && !isFetching,
@@ -94,10 +111,13 @@ export function useGetAllContactSubmissions() {
 
 export function useGetFinanceRoles() {
   const { actor, isFetching } = useActor();
+  const isLocalAdmin = useIsLocalAdminSession();
   return useQuery<[Principal, SmartFinanceRole][]>({
-    queryKey: ["financeRoles"],
+    queryKey: ["financeRoles", isLocalAdmin],
     queryFn: async () => {
       if (!actor) return [];
+      if (isLocalAdmin)
+        return actor.getFinanceRolesWithToken(ADMIN_SESSION_TOKEN);
       return actor.getFinanceRoles();
     },
     enabled: !!actor && !isFetching,
@@ -301,10 +321,13 @@ export function useUpdateProperty() {
 
 export function useGetAllProperties() {
   const { actor, isFetching } = useActor();
+  const isLocalAdmin = useIsLocalAdminSession();
   return useQuery<Property[]>({
-    queryKey: ["allProperties"],
+    queryKey: ["allProperties", isLocalAdmin],
     queryFn: async () => {
       if (!actor) return [];
+      if (isLocalAdmin)
+        return actor.getAllPropertiesWithToken(ADMIN_SESSION_TOKEN);
       return actor.getAllProperties();
     },
     enabled: !!actor && !isFetching,

@@ -36,6 +36,7 @@ export const Property = IDL.Record({
   'locationLink' : IDL.Text,
   'location' : IDL.Text,
 });
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const SmartFinanceRole = IDL.Variant({
   'financeApproved' : IDL.Null,
   'standard' : IDL.Null,
@@ -54,6 +55,24 @@ export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
 });
+export const http_header = IDL.Record({
+  'value' : IDL.Text,
+  'name' : IDL.Text,
+});
+export const http_request_result = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(http_header),
+});
+export const TransformationInput = IDL.Record({
+  'context' : IDL.Vec(IDL.Nat8),
+  'response' : http_request_result,
+});
+export const TransformationOutput = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(http_header),
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -63,11 +82,32 @@ export const idlService = IDL.Service({
       [IDL.Vec(ContactSubmission)],
       ['query'],
     ),
+  'getAllContactSubmissionsWithToken' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(ContactSubmission)],
+      ['query'],
+    ),
   'getAllProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
+  'getAllPropertiesWithToken' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(Property)],
+      ['query'],
+    ),
   'getApprovedProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getConstructionEstimate' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text],
+      [IDL.Text],
+      [],
+    ),
   'getFinanceRoles' : IDL.Func(
       [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, SmartFinanceRole))],
+      ['query'],
+    ),
+  'getFinanceRolesWithToken' : IDL.Func(
+      [IDL.Text],
       [IDL.Vec(IDL.Tuple(IDL.Principal, SmartFinanceRole))],
       ['query'],
     ),
@@ -77,12 +117,28 @@ export const idlService = IDL.Service({
       [IDL.Vec(SmartFinanceRequest)],
       ['query'],
     ),
+  'getSmartFinanceRequestsWithToken' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(SmartFinanceRequest)],
+      ['query'],
+    ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerFinanceApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+  'listApprovalsWithToken' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(UserApprovalInfo)],
+      ['query'],
+    ),
   'requestApproval' : IDL.Func([], [], []),
   'requestSmartFinanceAccess' : IDL.Func([IDL.Text, IDL.Int], [], []),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
   'setPropertyStatus' : IDL.Func([IDL.Nat, PropertyStatus, IDL.Int], [], []),
   'setSmartFinanceRole' : IDL.Func([IDL.Principal, SmartFinanceRole], [], []),
@@ -95,6 +151,11 @@ export const idlService = IDL.Service({
       [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
       [IDL.Nat],
       [],
+    ),
+  'transform' : IDL.Func(
+      [TransformationInput],
+      [TransformationOutput],
+      ['query'],
     ),
   'updateProperty' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
@@ -134,6 +195,7 @@ export const idlFactory = ({ IDL }) => {
     'locationLink' : IDL.Text,
     'location' : IDL.Text,
   });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const SmartFinanceRole = IDL.Variant({
     'financeApproved' : IDL.Null,
     'standard' : IDL.Null,
@@ -152,6 +214,21 @@ export const idlFactory = ({ IDL }) => {
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
   });
+  const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+  const http_request_result = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(http_header),
+  });
+  const TransformationInput = IDL.Record({
+    'context' : IDL.Vec(IDL.Nat8),
+    'response' : http_request_result,
+  });
+  const TransformationOutput = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(http_header),
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -161,11 +238,32 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ContactSubmission)],
         ['query'],
       ),
+    'getAllContactSubmissionsWithToken' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(ContactSubmission)],
+        ['query'],
+      ),
     'getAllProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
+    'getAllPropertiesWithToken' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(Property)],
+        ['query'],
+      ),
     'getApprovedProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getConstructionEstimate' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text],
+        [IDL.Text],
+        [],
+      ),
     'getFinanceRoles' : IDL.Func(
         [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, SmartFinanceRole))],
+        ['query'],
+      ),
+    'getFinanceRolesWithToken' : IDL.Func(
+        [IDL.Text],
         [IDL.Vec(IDL.Tuple(IDL.Principal, SmartFinanceRole))],
         ['query'],
       ),
@@ -175,12 +273,28 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(SmartFinanceRequest)],
         ['query'],
       ),
+    'getSmartFinanceRequestsWithToken' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(SmartFinanceRequest)],
+        ['query'],
+      ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerFinanceApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
+    'listApprovalsWithToken' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(UserApprovalInfo)],
+        ['query'],
+      ),
     'requestApproval' : IDL.Func([], [], []),
     'requestSmartFinanceAccess' : IDL.Func([IDL.Text, IDL.Int], [], []),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
     'setPropertyStatus' : IDL.Func([IDL.Nat, PropertyStatus, IDL.Int], [], []),
     'setSmartFinanceRole' : IDL.Func([IDL.Principal, SmartFinanceRole], [], []),
@@ -193,6 +307,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
         [IDL.Nat],
         [],
+      ),
+    'transform' : IDL.Func(
+        [TransformationInput],
+        [TransformationOutput],
+        ['query'],
       ),
     'updateProperty' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],

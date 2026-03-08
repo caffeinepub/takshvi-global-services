@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminPage from "./pages/AdminPage";
+import ConstructionCostPage from "./pages/ConstructionCostPage";
 import ContactPage from "./pages/ContactPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -86,6 +87,12 @@ const propertiesRoute = createRoute({
   component: PropertiesPage,
 });
 
+const constructionCostRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/construction-cost",
+  component: ConstructionCostPage,
+});
+
 const router = createRouter({
   routeTree: rootRoute.addChildren([
     indexRoute,
@@ -95,6 +102,7 @@ const router = createRouter({
     loginRoute,
     adminLoginRoute,
     propertiesRoute,
+    constructionCostRoute,
   ]),
 });
 

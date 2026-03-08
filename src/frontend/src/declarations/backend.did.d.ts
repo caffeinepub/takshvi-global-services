@@ -41,29 +41,66 @@ export interface SmartFinanceRequest {
 }
 export type SmartFinanceRole = { 'financeApproved' : null } |
   { 'standard' : null };
+export interface TransformationInput {
+  'context' : Uint8Array,
+  'response' : http_request_result,
+}
+export interface TransformationOutput {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
 }
+export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface http_header { 'value' : string, 'name' : string }
+export interface http_request_result {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllContactSubmissions' : ActorMethod<[], Array<ContactSubmission>>,
+  'getAllContactSubmissionsWithToken' : ActorMethod<
+    [string],
+    Array<ContactSubmission>
+  >,
   'getAllProperties' : ActorMethod<[], Array<Property>>,
+  'getAllPropertiesWithToken' : ActorMethod<[string], Array<Property>>,
   'getApprovedProperties' : ActorMethod<[], Array<Property>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getConstructionEstimate' : ActorMethod<
+    [string, string, bigint, string],
+    string
+  >,
   'getFinanceRoles' : ActorMethod<[], Array<[Principal, SmartFinanceRole]>>,
+  'getFinanceRolesWithToken' : ActorMethod<
+    [string],
+    Array<[Principal, SmartFinanceRole]>
+  >,
   'getMyProperties' : ActorMethod<[], Array<Property>>,
   'getSmartFinanceRequests' : ActorMethod<[], Array<SmartFinanceRequest>>,
+  'getSmartFinanceRequestsWithToken' : ActorMethod<
+    [string],
+    Array<SmartFinanceRequest>
+  >,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'isCallerFinanceApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
+  'listApprovalsWithToken' : ActorMethod<[string], Array<UserApprovalInfo>>,
   'requestApproval' : ActorMethod<[], undefined>,
   'requestSmartFinanceAccess' : ActorMethod<[string, bigint], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
   'setPropertyStatus' : ActorMethod<
     [bigint, PropertyStatus, bigint],
@@ -78,6 +115,7 @@ export interface _SERVICE {
     [string, string, string, string, string, bigint],
     bigint
   >,
+  'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateProperty' : ActorMethod<
     [bigint, string, string, string, string, string, bigint],
     undefined
