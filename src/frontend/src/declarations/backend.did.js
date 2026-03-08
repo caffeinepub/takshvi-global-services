@@ -19,6 +19,23 @@ export const ContactSubmission = IDL.Record({
   'message' : IDL.Text,
   'phone' : IDL.Text,
 });
+export const PropertyStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
+export const Property = IDL.Record({
+  'id' : IDL.Nat,
+  'status' : PropertyStatus,
+  'title' : IDL.Text,
+  'owner' : IDL.Principal,
+  'createdAt' : IDL.Int,
+  'description' : IDL.Text,
+  'valuation' : IDL.Text,
+  'updatedAt' : IDL.Int,
+  'locationLink' : IDL.Text,
+  'location' : IDL.Text,
+});
 export const SmartFinanceRole = IDL.Variant({
   'financeApproved' : IDL.Null,
   'standard' : IDL.Null,
@@ -46,12 +63,15 @@ export const idlService = IDL.Service({
       [IDL.Vec(ContactSubmission)],
       ['query'],
     ),
+  'getAllProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
+  'getApprovedProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getFinanceRoles' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, SmartFinanceRole))],
       ['query'],
     ),
+  'getMyProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
   'getSmartFinanceRequests' : IDL.Func(
       [],
       [IDL.Vec(SmartFinanceRequest)],
@@ -64,9 +84,20 @@ export const idlService = IDL.Service({
   'requestApproval' : IDL.Func([], [], []),
   'requestSmartFinanceAccess' : IDL.Func([IDL.Text, IDL.Int], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
+  'setPropertyStatus' : IDL.Func([IDL.Nat, PropertyStatus, IDL.Int], [], []),
   'setSmartFinanceRole' : IDL.Func([IDL.Principal, SmartFinanceRole], [], []),
   'submitContactSubmission' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [],
+      [],
+    ),
+  'submitProperty' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
+      [IDL.Nat],
+      [],
+    ),
+  'updateProperty' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
       [],
       [],
     ),
@@ -85,6 +116,23 @@ export const idlFactory = ({ IDL }) => {
     'email' : IDL.Text,
     'message' : IDL.Text,
     'phone' : IDL.Text,
+  });
+  const PropertyStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
+  const Property = IDL.Record({
+    'id' : IDL.Nat,
+    'status' : PropertyStatus,
+    'title' : IDL.Text,
+    'owner' : IDL.Principal,
+    'createdAt' : IDL.Int,
+    'description' : IDL.Text,
+    'valuation' : IDL.Text,
+    'updatedAt' : IDL.Int,
+    'locationLink' : IDL.Text,
+    'location' : IDL.Text,
   });
   const SmartFinanceRole = IDL.Variant({
     'financeApproved' : IDL.Null,
@@ -113,12 +161,15 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ContactSubmission)],
         ['query'],
       ),
+    'getAllProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
+    'getApprovedProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getFinanceRoles' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, SmartFinanceRole))],
         ['query'],
       ),
+    'getMyProperties' : IDL.Func([], [IDL.Vec(Property)], ['query']),
     'getSmartFinanceRequests' : IDL.Func(
         [],
         [IDL.Vec(SmartFinanceRequest)],
@@ -131,9 +182,20 @@ export const idlFactory = ({ IDL }) => {
     'requestApproval' : IDL.Func([], [], []),
     'requestSmartFinanceAccess' : IDL.Func([IDL.Text, IDL.Int], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
+    'setPropertyStatus' : IDL.Func([IDL.Nat, PropertyStatus, IDL.Int], [], []),
     'setSmartFinanceRole' : IDL.Func([IDL.Principal, SmartFinanceRole], [], []),
     'submitContactSubmission' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [],
+        [],
+      ),
+    'submitProperty' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
+        [IDL.Nat],
+        [],
+      ),
+    'updateProperty' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Int],
         [],
         [],
       ),

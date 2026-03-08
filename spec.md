@@ -1,37 +1,42 @@
 # Takshvi Global Services
 
 ## Current State
-New project. No existing code.
+- Full-stack ICP app with Navy/Gold theme
+- Smart Finance portal (approval-gated, Internet Identity auth)
+- Admin dashboard with user approvals, finance requests, contact submissions, finance role management
+- Login page with Internet Identity + admin credential login (admin section buried at bottom)
+- Contact page
+- Home page with services, stats, why-choose-us sections
+- Logo broken (shows question mark)
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full website for Takshvi Global Services with a Navy and Gold premium theme
-- Public landing page with company overview and services
-- Login/Registration system for users
-- "Smart Finance" section that is locked behind admin-approved access
-- Request Access flow: locked users can submit a request to unlock Smart Finance features
-- Admin dashboard to manage users and approve/deny Smart Finance access
-- User approval workflow: user submits request, admin grants "Finance Approved" status, user gains access
-- Contact details displayed across site:
-  - Phone: +91 9059296914
-  - Email: takshvipvt.ltd@gmail.com
-  - Office Hours: Mon - Sat, 9:00 AM - 6:00 PM
-- Footer with contact info in Navy/Gold style
-- Contact page with full contact details
-- Smart Finance unlock chat/request box with contact info embedded
+- Separate `/admin-login` page for admin credential login (krishna.ku / dilip.ku with password admin.ku)
+- `/properties` page: public listing of admin-approved properties; viewable by anyone
+- Property submission form for approved users (post title, description, location, valuation, Google Maps/location link)
+- Admin can approve/reject property listings; admin can also edit any property
+- Approved users can submit and edit their own properties
+- Properties section promoted on Home page (showing latest approved properties)
+- Property management tab in Admin dashboard
+- Backend: Property data model (id, owner, title, description, location, valuation, locationLink, status, createdAt, updatedAt)
+- Backend endpoints: submitProperty, updateProperty, setPropertyStatus, getApprovedProperties, getMyProperties, getAllProperties
+- Fix logo: use uploaded Takshvi Global Services India Pvt Ltd logo
 
 ### Modify
-N/A
+- Login page: remove admin login section from bottom; add link to /admin-login instead
+- Navbar: add "Properties" link (public); add "Admin Login" link visible to all; update logo src
+- Admin dashboard: add "Properties" tab to manage all submitted properties
 
 ### Remove
-N/A
+- Admin login card from LoginPage (moved to dedicated AdminLoginPage)
 
 ## Implementation Plan
-1. Backend: User accounts, roles (Standard, Finance Approved, Admin), request submission, admin approval/denial APIs
-2. Frontend landing page: hero, services overview, contact info, footer
-3. Smart Finance page: locked view with request access form/popup, unlocked view with finance tools placeholder
-4. Admin dashboard: user list with approve/deny actions
-5. Login/Register pages with contact support note
-6. Contact page with details
-7. Navigation linking all sections
+1. Regenerate backend with Property type and all property endpoints (keeping all existing endpoints)
+2. Create AdminLoginPage at /admin-login (extracted from LoginPage)
+3. Update LoginPage to remove admin section, add link to /admin-login
+4. Create PropertiesPage: public listing + approved-user submission form + own property management
+5. Update AdminPage: add Properties tab with approve/reject/edit controls
+6. Update HomePage: add Featured Properties section showing latest 3 approved properties
+7. Update Navbar: add Properties link, Admin Login link, fix logo reference
+8. Update App.tsx to register /admin-login and /properties routes

@@ -1,6 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -11,12 +19,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import type { Principal } from "@icp-sdk/core/principal";
 import {
   AlertTriangle,
   Ban,
+  Building2,
   CheckCircle2,
   Clock,
+  Edit2,
   Loader2,
   MessageSquare,
   Shield,
@@ -26,17 +37,194 @@ import {
   XCircle,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ApprovalStatus, SmartFinanceRole } from "../backend.d";
+import type { Property } from "../backend.d";
+import { PropertyStatus, SmartFinanceRole } from "../backend.d";
 import {
+  ApprovalStatus,
+  useAdminUpdateProperty,
   useGetAllContactSubmissions,
+  useGetAllProperties,
   useGetFinanceRoles,
   useGetSmartFinanceRequests,
   useIsCallerAdmin,
   useListApprovals,
   useSetApproval,
+  useSetPropertyStatus,
   useSetSmartFinanceRole,
 } from "../hooks/useQueries";
+
+// ─── Property Status Badge ──────────────────────────────────────────────────
+
+function PropertyStatusBadge({ status }: { status: PropertyStatus }) {
+  const map: Record<PropertyStatus, { label: string; className: string }> = {
+    [PropertyStatus.approved]: {
+      label: "Approved",
+      className: "bg-green-900/30 text-green-400 border-green-700/30",
+    },
+    [PropertyStatus.rejected]: {
+      label: "Rejected",
+      className: "bg-red-900/30 text-red-400 border-red-700/30",
+    },
+    [PropertyStatus.pending]: {
+      label: "Pending",
+      className: "bg-yellow-900/30 text-yellow-400 border-yellow-700/30",
+    },
+  };
+  const { label, className } = map[status] ?? { label: status, className: "" };
+  return <Badge className={`${className} text-xs`}>{label}</Badge>;
+}
+
+// ─── Admin Property Edit Dialog ────────────────────────────────────────────
+
+function AdminPropertyEditDialog({
+  property,
+  open,
+  onClose,
+}: {
+  property: Property;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: property.title,
+    description: property.description,
+    location: property.location,
+    valuation: property.valuation,
+    locationLink: property.locationLink,
+  });
+
+  const adminUpdateProperty = useAdminUpdateProperty();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await adminUpdateProperty.mutateAsync({
+        id: property.id,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        location: form.location.trim(),
+        valuation: form.valuation.trim(),
+        locationLink: form.locationLink.trim(),
+        timestamp: BigInt(Date.now()),
+      });
+      toast.success("Property updated successfully.");
+      onClose();
+    } catch {
+      toast.error("Failed to update property.");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent
+        className="bg-card border-gold-dim/30 text-foreground max-w-lg"
+        data-ocid="admin.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle className="font-display text-foreground">
+            Edit Property
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+              Title
+            </Label>
+            <Input
+              value={form.title}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
+              className="bg-muted/40 border-border focus:border-gold-dim rounded-sm text-sm"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+                Location
+              </Label>
+              <Input
+                value={form.location}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, location: e.target.value }))
+                }
+                className="bg-muted/40 border-border focus:border-gold-dim rounded-sm text-sm"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+                Valuation
+              </Label>
+              <Input
+                value={form.valuation}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, valuation: e.target.value }))
+                }
+                placeholder="e.g. ₹50 Lakhs"
+                className="bg-muted/40 border-border focus:border-gold-dim rounded-sm text-sm"
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+              Description
+            </Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
+              rows={3}
+              className="bg-muted/40 border-border focus:border-gold-dim rounded-sm text-sm resize-none"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-foreground/60 text-xs uppercase tracking-wider">
+              Location Link (optional)
+            </Label>
+            <Input
+              value={form.locationLink}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, locationLink: e.target.value }))
+              }
+              type="url"
+              placeholder="https://maps.google.com/..."
+              className="bg-muted/40 border-border focus:border-gold-dim rounded-sm text-sm"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="submit"
+              className="btn-gold flex-1 rounded-sm text-sm"
+              disabled={adminUpdateProperty.isPending}
+              data-ocid="admin.save_button"
+            >
+              {adminUpdateProperty.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Save Changes
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="border-border text-foreground/60 hover:text-foreground rounded-sm text-sm"
+              data-ocid="admin.cancel_button"
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function truncatePrincipal(p: Principal | string): string {
   const s = typeof p === "string" ? p : p.toString();
@@ -78,15 +266,21 @@ function FinanceRoleBadge({ role }: { role: SmartFinanceRole }) {
 
 export default function AdminPage() {
   const { data: isAdmin, isLoading: loadingAdmin } = useIsCallerAdmin();
+  const hasAdminSession =
+    sessionStorage.getItem("takshvi_admin_session") === "true";
   const { data: approvals, isLoading: loadingApprovals } = useListApprovals();
   const { data: financeRequests, isLoading: loadingFinanceReqs } =
     useGetSmartFinanceRequests();
   const { data: contactSubmissions, isLoading: loadingContacts } =
     useGetAllContactSubmissions();
   const { data: financeRoles, isLoading: loadingRoles } = useGetFinanceRoles();
+  const { data: allProperties, isLoading: loadingProperties } =
+    useGetAllProperties();
 
   const setApproval = useSetApproval();
   const setFinanceRole = useSetSmartFinanceRole();
+  const setPropertyStatus = useSetPropertyStatus();
+  const [editProperty, setEditProperty] = useState<Property | null>(null);
 
   const handleSetApproval = async (
     principal: Principal,
@@ -124,6 +318,24 @@ export default function AdminPage() {
     }
   };
 
+  const handleSetPropertyStatus = async (
+    id: bigint,
+    status: PropertyStatus,
+  ) => {
+    try {
+      await setPropertyStatus.mutateAsync({
+        id,
+        status,
+        timestamp: BigInt(Date.now()),
+      });
+      toast.success(
+        `Property ${status === PropertyStatus.approved ? "approved" : "rejected"}.`,
+      );
+    } catch {
+      toast.error("Action failed. Please try again.");
+    }
+  };
+
   if (loadingAdmin) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-background pt-20">
@@ -138,7 +350,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !hasAdminSession) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-background pt-20">
         <div
@@ -179,6 +391,11 @@ export default function AdminPage() {
           .length ?? 0,
       icon: Star,
     },
+    {
+      label: "Total Properties",
+      value: allProperties?.length ?? 0,
+      icon: Building2,
+    },
   ];
 
   return (
@@ -204,7 +421,7 @@ export default function AdminPage() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             {stats.map((s, i) => {
               const Icon = s.icon;
               return (
@@ -231,6 +448,15 @@ export default function AdminPage() {
             })}
           </div>
 
+          {/* Property edit dialog */}
+          {editProperty && (
+            <AdminPropertyEditDialog
+              property={editProperty}
+              open={!!editProperty}
+              onClose={() => setEditProperty(null)}
+            />
+          )}
+
           {/* Tabs */}
           <Tabs defaultValue="approvals">
             <TabsList className="bg-card border border-border mb-6 gap-1 p-1 h-auto flex-wrap">
@@ -254,6 +480,13 @@ export default function AdminPage() {
                   value: "finance-roles",
                   label: "Finance Roles",
                   count: undefined,
+                },
+                {
+                  value: "properties",
+                  label: "Properties",
+                  count: allProperties?.filter(
+                    (p) => p.status === PropertyStatus.pending,
+                  ).length,
                 },
               ].map((tab) => (
                 <TabsTrigger
@@ -551,6 +784,152 @@ export default function AdminPage() {
                           </CardContent>
                         </Card>
                       ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ─── Tab 5: Properties ─── */}
+            <TabsContent value="properties">
+              <Card
+                className="card-gold-border bg-card"
+                data-ocid="admin.table"
+              >
+                <CardHeader className="px-6 pt-5 pb-4">
+                  <CardTitle className="font-display text-lg text-foreground flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-gold-mid" />
+                    Property Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 pb-0">
+                  {loadingProperties ? (
+                    <div
+                      className="space-y-2 px-6 pb-6"
+                      data-ocid="admin.loading_state"
+                    >
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-12 bg-muted" />
+                      ))}
+                    </div>
+                  ) : !allProperties?.length ? (
+                    <div
+                      className="text-center py-12 text-foreground/50"
+                      data-ocid="admin.empty_state"
+                    >
+                      <Building2 className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                      <p>No properties submitted yet.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-border hover:bg-transparent">
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider pl-6">
+                              Title
+                            </TableHead>
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
+                              Location
+                            </TableHead>
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
+                              Valuation
+                            </TableHead>
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
+                              Owner
+                            </TableHead>
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
+                              Status
+                            </TableHead>
+                            <TableHead className="text-foreground/50 text-xs uppercase tracking-wider">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allProperties.map((property, i) => (
+                            <TableRow
+                              key={property.id.toString()}
+                              className="border-border hover:bg-gold-mid/3"
+                              data-ocid={`admin.row.${i + 1}`}
+                            >
+                              <TableCell className="pl-6">
+                                <span className="font-medium text-foreground text-sm max-w-[140px] truncate block">
+                                  {property.title}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-foreground/70 text-xs max-w-[100px] truncate block">
+                                  {property.location}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-gold-dim text-xs font-medium">
+                                  {property.valuation}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-mono text-xs text-foreground/60">
+                                  {truncatePrincipal(property.owner)}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <PropertyStatusBadge status={property.status} />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {property.status !==
+                                    PropertyStatus.approved && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() =>
+                                        handleSetPropertyStatus(
+                                          property.id,
+                                          PropertyStatus.approved,
+                                        )
+                                      }
+                                      disabled={setPropertyStatus.isPending}
+                                      className="btn-gold h-7 px-3 text-xs rounded-sm"
+                                      data-ocid={`admin.confirm_button.${i + 1}`}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                                      Approve
+                                    </Button>
+                                  )}
+                                  {property.status !==
+                                    PropertyStatus.rejected && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleSetPropertyStatus(
+                                          property.id,
+                                          PropertyStatus.rejected,
+                                        )
+                                      }
+                                      disabled={setPropertyStatus.isPending}
+                                      className="border-destructive/50 text-destructive hover:bg-destructive/10 h-7 px-3 text-xs rounded-sm"
+                                      data-ocid={`admin.delete_button.${i + 1}`}
+                                    >
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Reject
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditProperty(property)}
+                                    className="border-gold-dim/40 text-gold-mid hover:border-gold-mid hover:bg-gold-mid/5 h-7 px-3 text-xs rounded-sm"
+                                    data-ocid={`admin.edit_button.${i + 1}`}
+                                  >
+                                    <Edit2 className="w-3 h-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   )}
                 </CardContent>

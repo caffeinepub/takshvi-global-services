@@ -50,8 +50,12 @@ export default function Navbar() {
     }
   };
 
+  const hasAdminSession =
+    sessionStorage.getItem("takshvi_admin_session") === "true";
+
   const navLinks = [
     { to: "/", label: "Home" },
+    { to: "/properties", label: "Properties", locked: false },
     {
       to: "/smart-finance",
       label: "Smart Finance",
@@ -133,6 +137,15 @@ export default function Navbar() {
 
           {/* Right side: auth + badges */}
           <div className="hidden md:flex items-center gap-3">
+            {!hasAdminSession && (
+              <Link
+                to="/admin-login"
+                className="text-xs text-gold-dim/70 hover:text-gold-dim transition-colors"
+                data-ocid="nav.link"
+              >
+                Admin
+              </Link>
+            )}
             {isAuthenticated && isFinanceApproved && (
               <Badge className="bg-gold-mid/20 text-gold-bright border-gold-dim/40 text-xs">
                 <Star className="w-3 h-3 mr-1" />
@@ -222,6 +235,16 @@ export default function Navbar() {
                 >
                   <Shield className="w-4 h-4" />
                   Admin Dashboard
+                </Link>
+              )}
+              {!hasAdminSession && (
+                <Link
+                  to="/admin-login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-md text-sm font-medium text-gold-dim/70 hover:text-gold-dim"
+                  data-ocid="nav.link"
+                >
+                  Admin Login
                 </Link>
               )}
               <div className="pt-2 border-t border-gold-dim/20">

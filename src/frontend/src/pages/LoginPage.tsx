@@ -300,6 +300,18 @@ export default function LoginPage() {
                 Contact support at 9059296914
               </a>
             </p>
+
+            {/* Admin portal link */}
+            <p className="text-center text-foreground/40 text-xs">
+              Admin?{" "}
+              <a
+                href="/admin-login"
+                className="text-gold-dim hover:text-gold-mid transition-colors"
+                data-ocid="login.link"
+              >
+                Sign in to the Admin Portal →
+              </a>
+            </p>
           </motion.div>
         </div>
       </div>

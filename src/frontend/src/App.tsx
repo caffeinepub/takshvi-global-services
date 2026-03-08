@@ -8,10 +8,12 @@ import {
 } from "@tanstack/react-router";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminPage from "./pages/AdminPage";
 import ContactPage from "./pages/ContactPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import PropertiesPage from "./pages/PropertiesPage";
 import SmartFinancePage from "./pages/SmartFinancePage";
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
@@ -72,6 +74,18 @@ const loginRoute = createRoute({
   component: LoginPage,
 });
 
+const adminLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin-login",
+  component: AdminLoginPage,
+});
+
+const propertiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/properties",
+  component: PropertiesPage,
+});
+
 const router = createRouter({
   routeTree: rootRoute.addChildren([
     indexRoute,
@@ -79,6 +93,8 @@ const router = createRouter({
     adminRoute,
     contactRoute,
     loginRoute,
+    adminLoginRoute,
+    propertiesRoute,
   ]),
 });
 

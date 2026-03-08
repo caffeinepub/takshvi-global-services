@@ -5,17 +5,24 @@ import {
   ArrowRight,
   BarChart3,
   Briefcase,
+  Building2,
   CheckCircle2,
   Clock,
+  ExternalLink,
   Globe2,
   Lock,
   Mail,
+  MapPin,
   Phone,
+  Tag,
   TrendingUp,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useIsCallerFinanceApproved } from "../hooks/useQueries";
+import {
+  useGetApprovedProperties,
+  useIsCallerFinanceApproved,
+} from "../hooks/useQueries";
 
 const services = [
   {
@@ -79,6 +86,8 @@ export default function HomePage() {
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity;
   const { data: isFinanceApproved } = useIsCallerFinanceApproved();
+  const { data: approvedProperties } = useGetApprovedProperties();
+  const featuredProperties = approvedProperties?.slice(0, 3) ?? [];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -313,6 +322,108 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ─── Featured Properties ─── */}
+      {featuredProperties.length > 0 && (
+        <section className="py-20 lg:py-24 bg-card border-t border-gold-dim/15">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12 gap-4"
+            >
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-px w-8 bg-gold-dim" />
+                  <span className="text-gold-dim text-xs tracking-[0.25em] uppercase font-semibold">
+                    Real Estate
+                  </span>
+                </div>
+                <h2 className="font-display text-4xl lg:text-5xl font-bold text-foreground">
+                  Featured Properties
+                </h2>
+              </div>
+              <Link to="/properties" data-ocid="home.link">
+                <Button
+                  variant="ghost"
+                  className="text-gold-mid hover:text-gold-bright hover:bg-gold-mid/5 group"
+                >
+                  View All Properties
+                  <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featuredProperties.map((property, i) => (
+                <motion.div
+                  key={property.id.toString()}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                >
+                  <Card
+                    className="card-gold-border bg-background h-full flex flex-col"
+                    data-ocid={`home.item.${i + 1}`}
+                  >
+                    <CardContent className="p-6 flex flex-col gap-3 h-full">
+                      <div className="flex items-start gap-2">
+                        <div className="p-1.5 rounded-sm bg-gold-mid/10 border border-gold-dim/30 flex-shrink-0 mt-0.5">
+                          <Building2 className="w-3.5 h-3.5 text-gold-mid" />
+                        </div>
+                        <h3 className="font-display text-base font-bold text-foreground leading-snug">
+                          {property.title}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-foreground/60 text-sm">
+                        <MapPin className="w-3.5 h-3.5 text-gold-dim flex-shrink-0" />
+                        <span className="truncate">{property.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-sm bg-gold-mid/8 border border-gold-dim/20">
+                        <Tag className="w-3 h-3 text-gold-mid flex-shrink-0" />
+                        <span className="text-gold-bright font-display font-semibold text-sm">
+                          {property.valuation}
+                        </span>
+                      </div>
+                      <p className="text-foreground/60 text-sm leading-relaxed line-clamp-2 flex-grow">
+                        {property.description}
+                      </p>
+                      {property.locationLink && (
+                        <a
+                          href={property.locationLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-gold-mid hover:text-gold-bright transition-colors text-xs font-medium"
+                          data-ocid={`home.link.${i + 1}`}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          View Location
+                        </a>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mt-10"
+            >
+              <Link to="/properties" data-ocid="home.secondary_button">
+                <Button className="btn-gold rounded-sm px-8">
+                  Browse All Properties
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* ─── Why Choose Us ─── */}
       <section className="py-20 lg:py-24 bg-card border-t border-gold-dim/15">

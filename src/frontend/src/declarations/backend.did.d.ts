@@ -19,6 +19,21 @@ export interface ContactSubmission {
   'message' : string,
   'phone' : string,
 }
+export interface Property {
+  'id' : bigint,
+  'status' : PropertyStatus,
+  'title' : string,
+  'owner' : Principal,
+  'createdAt' : bigint,
+  'description' : string,
+  'valuation' : string,
+  'updatedAt' : bigint,
+  'locationLink' : string,
+  'location' : string,
+}
+export type PropertyStatus = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
 export interface SmartFinanceRequest {
   'request' : string,
   'user' : Principal,
@@ -37,8 +52,11 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllContactSubmissions' : ActorMethod<[], Array<ContactSubmission>>,
+  'getAllProperties' : ActorMethod<[], Array<Property>>,
+  'getApprovedProperties' : ActorMethod<[], Array<Property>>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getFinanceRoles' : ActorMethod<[], Array<[Principal, SmartFinanceRole]>>,
+  'getMyProperties' : ActorMethod<[], Array<Property>>,
   'getSmartFinanceRequests' : ActorMethod<[], Array<SmartFinanceRequest>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
@@ -47,9 +65,21 @@ export interface _SERVICE {
   'requestApproval' : ActorMethod<[], undefined>,
   'requestSmartFinanceAccess' : ActorMethod<[string, bigint], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
+  'setPropertyStatus' : ActorMethod<
+    [bigint, PropertyStatus, bigint],
+    undefined
+  >,
   'setSmartFinanceRole' : ActorMethod<[Principal, SmartFinanceRole], undefined>,
   'submitContactSubmission' : ActorMethod<
     [string, string, string, string],
+    undefined
+  >,
+  'submitProperty' : ActorMethod<
+    [string, string, string, string, string, bigint],
+    bigint
+  >,
+  'updateProperty' : ActorMethod<
+    [bigint, string, string, string, string, string, bigint],
     undefined
   >,
 }

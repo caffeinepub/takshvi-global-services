@@ -1,13 +1,20 @@
 import type { Principal } from "@icp-sdk/core/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  ApprovalStatus,
   ContactSubmission,
+  Property,
   SmartFinanceRequest,
-  SmartFinanceRole,
   UserApprovalInfo,
 } from "../backend.d";
+import type { PropertyStatus, SmartFinanceRole } from "../backend.d";
 import { useActor } from "./useActor";
+
+// Re-export ApprovalStatus as a local enum since backend.d.ts doesn't export it
+export enum ApprovalStatus {
+  approved = "approved",
+  pending = "pending",
+  rejected = "rejected",
+}
 
 // ─── Auth / Role Queries ───────────────────────────────────────────────────
 
@@ -184,6 +191,185 @@ export function useSubmitContactSubmission() {
     }) => {
       if (!actor) throw new Error("Not connected");
       return actor.submitContactSubmission(name, email, phone, message);
+    },
+  });
+}
+
+// ─── Property Queries ──────────────────────────────────────────────────────
+
+export function useGetApprovedProperties() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Property[]>({
+    queryKey: ["approvedProperties"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getApprovedProperties();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetMyProperties() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Property[]>({
+    queryKey: ["myProperties"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyProperties();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSubmitProperty() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      title,
+      description,
+      location,
+      valuation,
+      locationLink,
+      timestamp,
+    }: {
+      title: string;
+      description: string;
+      location: string;
+      valuation: string;
+      locationLink: string;
+      timestamp: bigint;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.submitProperty(
+        title,
+        description,
+        location,
+        valuation,
+        locationLink,
+        timestamp,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["approvedProperties"] });
+    },
+  });
+}
+
+export function useUpdateProperty() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      description,
+      location,
+      valuation,
+      locationLink,
+      timestamp,
+    }: {
+      id: bigint;
+      title: string;
+      description: string;
+      location: string;
+      valuation: string;
+      locationLink: string;
+      timestamp: bigint;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.updateProperty(
+        id,
+        title,
+        description,
+        location,
+        valuation,
+        locationLink,
+        timestamp,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["approvedProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["allProperties"] });
+    },
+  });
+}
+
+// ─── Admin Property Queries ────────────────────────────────────────────────
+
+export function useGetAllProperties() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Property[]>({
+    queryKey: ["allProperties"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllProperties();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetPropertyStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      timestamp,
+    }: {
+      id: bigint;
+      status: PropertyStatus;
+      timestamp: bigint;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.setPropertyStatus(id, status, timestamp);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["approvedProperties"] });
+    },
+  });
+}
+
+export function useAdminUpdateProperty() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      description,
+      location,
+      valuation,
+      locationLink,
+      timestamp,
+    }: {
+      id: bigint;
+      title: string;
+      description: string;
+      location: string;
+      valuation: string;
+      locationLink: string;
+      timestamp: bigint;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.updateProperty(
+        id,
+        title,
+        description,
+        location,
+        valuation,
+        locationLink,
+        timestamp,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["approvedProperties"] });
+      queryClient.invalidateQueries({ queryKey: ["myProperties"] });
     },
   });
 }
